@@ -1,80 +1,74 @@
 const express = require("express");
 const app = express();
-const mysql = require("mysql");
+const { Pool } = require("pg");
 const cors = require("cors");
 
-const db = mysql.createPool({
-  host: "localhost",
-  user: "root",
-  password: "password",
-  database: "crudgame",
+const db = new Pool({
+  host: "dpg-ckqrbvg5vl2c7395ck20-a.oregon-postgres.render.com",
+  user: "gabcatani",
+  password: "rZzL8V1ozBaAxs1SkymzAaE1Mj2vNN7z",
+  database: "crudgames",
+  port: 5432,
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
+
+// Criar tabela se ela não existir
+const createTableQuery = `
+  CREATE TABLE IF NOT EXISTS games (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255),
+    cost FLOAT,
+    category VARCHAR(255)
+  )
+`;
+
+db.query(createTableQuery)
+  .then(() => {
+    console.log("Table created or already exists");
+  })
+  .catch((err) => {
+    console.log("Error creating table: ", err);
+  });
 
 app.use(express.json());
 app.use(cors());
 
-app.post("/register", (req, res) => {
-  const { name } = req.body;
-  const { cost } = req.body;
-  const { category } = req.body;
-
-  let mysql = "INSERT INTO games ( name, cost, category) VALUES (?, ?, ?)";
-  db.query(mysql, [name, cost, category], (err, result) => {
-    res.send(result);
-  });
+app.post("/register", async (req, res) => {
+  const { name, cost, category } = req.body;
+  const sql = "INSERT INTO games (name, cost, category) VALUES ($1, $2, $3)";
+  await db.query(sql, [name, cost, category]);
+  res.send("Inserted");
 });
 
-app.post("/search", (req, res) => {
-  const { name } = req.body;
-  const { cost } = req.body;
-  const { category } = req.body;
-
-  let mysql =
-    "SELECT * from games WHERE name = ? AND cost = ? AND category = ?";
-  db.query(mysql, [name, cost, category], (err, result) => {
-    if (err) res.send(err);
-    res.send(result);
-  });
+app.post("/search", async (req, res) => {
+  const { name, cost, category } = req.body;
+  const sql = "SELECT * FROM games WHERE name = $1 AND cost = $2 AND category = $3";
+  const result = await db.query(sql, [name, cost, category]);
+  res.send(result.rows);
 });
 
-app.get("/getCards", (req, res) => {
-  let mysql = "SELECT * FROM games";
-  db.query(mysql, (err, result) => {
-    if (err) {
-      console.log(err);
-    } else {
-      res.send(result);
-    }
-  });
+app.get("/getCards", async (req, res) => {
+  const sql = "SELECT * FROM games";
+  const result = await db.query(sql);
+  res.send(result.rows);
 });
 
-app.put("/edit", (req, res) => {
-  const { id } = req.body;
-  const { name } = req.body;
-  const { cost } = req.body;
-  const { category } = req.body;
-  let mysql = "UPDATE games SET name = ?, cost = ?, category = ? WHERE id = ?";
-  db.query(mysql, [name, cost, category, id], (err, result) => {
-    if (err) {
-      res.send(err);
-    } else {
-      res.send(result);
-    }
-  });
+app.put("/edit", async (req, res) => {
+  const { id, name, cost, category } = req.body;
+  const sql = "UPDATE games SET name = $1, cost = $2, category = $3 WHERE id = $4";
+  await db.query(sql, [name, cost, category, id]);
+  res.send("Updated");
 });
 
-app.delete("/delete/:id", (req, res) => {
+app.delete("/delete/:id", async (req, res) => {
   const { id } = req.params;
-  let mysql = "DELETE FROM games WHERE id = ?";
-  db.query(mysql, id, (err, result) => {
-    if (err) {
-      console.log(err);
-    } else {
-      res.send(result);
-    }
-  });
+  const sql = "DELETE FROM games WHERE id = $1";
+  await db.query(sql, [id]);
+  res.send("Deleted");
 });
 
 app.listen(3001, () => {
-  console.log("rodando na porta 3001");
+  console.log("Running on port 3001");
 });
