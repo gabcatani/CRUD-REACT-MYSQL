@@ -6,7 +6,6 @@ import DialogActions from "@material-ui/core/DialogActions";
 import DialogContent from "@material-ui/core/DialogContent";
 import DialogTitle from "@material-ui/core/DialogTitle";
 import Axios from "axios";
-import produce from "immer";
 
 export default function FormDialog(props) {
   const [editValues, setEditValues] = useState({
@@ -36,7 +35,7 @@ export default function FormDialog(props) {
     }).then(() => {
       props.setListCard(
         props.listCard.map((value) => {
-          return value.id == editValues.id
+          return value.id === editValues.id
             ? {
                 id: editValues.id,
                 name: editValues.name,
@@ -54,7 +53,7 @@ export default function FormDialog(props) {
     Axios.delete(`http://localhost:3001/delete/${editValues.id}`).then(() => {
       props.setListCard(
         props.listCard.filter((value) => {
-          return value.id != editValues.id;
+          return value.id !== editValues.id;
         })
       );
     });
